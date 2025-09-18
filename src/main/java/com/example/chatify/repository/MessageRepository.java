@@ -1,15 +1,15 @@
 package com.example.chatify.repository;
 
+import com.example.chatify.model.Message;
+import com.example.chatify.model.User;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.example.chatify.model.*;
-import org.springframework.data.jpa.repository.*;
-import org.springframework.stereotype.Repository;
-import java.util.*;
+import java.util.List;
 
-@Repository
 public interface MessageRepository extends JpaRepository<Message, Long> {
-    List<Message> findByRecipientIdOrderBySentAtAsc(Long userId);
-    List<Message> findBySenderIdAndRecipientIdOrSenderIdAndRecipientIdOrderBySentAtAsc(
-            Long s1, Long r1, Long s2, Long r2);
-    List<Message> findByGroupChatIdOrderBySentAtAsc(Long groupId);
+
+    // ✅ Correct naming with recipient
+    List<Message> findBySenderAndRecipientOrRecipientAndSenderOrderByTimestampAsc(
+            User sender, User recipient, User recipient2, User sender2
+    );
 }

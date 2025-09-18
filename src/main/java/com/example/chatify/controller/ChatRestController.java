@@ -1,43 +1,56 @@
 package com.example.chatify.controller;
 
 import com.example.chatify.model.Message;
-import com.example.chatify.model.User;
-import com.example.chatify.repository.UserRepository;
 import com.example.chatify.service.ChatService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/chat")
+@RequestMapping("/api/chat")
 public class ChatRestController {
 
     private final ChatService chatService;
-    private final UserRepository userRepo;
 
-    // ✅ Manual constructor for dependency injection
-    public ChatRestController(ChatService chatService, UserRepository userRepo) {
+    public ChatRestController(ChatService chatService) {
         this.chatService = chatService;
-        this.userRepo = userRepo;
     }
 
+    // ✅ Send direct message via REST
     @PostMapping("/direct")
-    public Message sendDirect(@RequestParam Long from, @RequestParam Long to, @RequestParam String content) {
-        return chatService.sendDirect(from, to, content);
+    public ResponseEntity<Message> sendDirect(@RequestBody Map<String, Object> payload) {
+        Long senderId = Long.valueOf(payload.get("senderId").toString());
+        Long recipientId = Long.valueOf(payload.get("recipientId").toString());
+        String content = payload.get("content").toString();
+
+        Message msg = chatService.sendDirect(senderId, recipientId, content);
+        return ResponseEntity.ok(msg);
     }
 
+    // ✅ Get direct conversation between two users
+    @GetMapping("/direct/{userId}/{friendId}")
+    public ResponseEntity<List<Message>> getDirectThread(
+            @PathVariable Long userId,
+            @PathVariable Long friendId) {
+        return ResponseEntity.ok(chatService.directThread(userId, friendId));
+    }
+
+    // ✅ Send group message
     @PostMapping("/group")
-    public Message sendToGroup(@RequestParam Long from, @RequestParam Long groupId, @RequestParam String content) {
-        return chatService.sendToGroup(from, groupId, content);
+    public ResponseEntity<Message> sendGroup(@RequestBody Map<String, Object> payload) {
+        Long senderId = Long.valueOf(payload.get("senderId").toString());
+        Long groupId = Long.valueOf(payload.get("groupId").toString());
+        String content = payload.get("content").toString();
+
+        Message msg = chatService.sendToGroup(senderId, groupId, content);
+        return ResponseEntity.ok(msg);
     }
 
-    @GetMapping("/direct-thread")
-    public List<Message> directThread(@RequestParam Long u1, @RequestParam Long u2) {
-        return chatService.directThread(u1, u2);
-    }
-
-    @GetMapping("/group-thread")
-    public List<Message> groupThread(@RequestParam Long groupId) {
-        return chatService.groupThread(groupId);
+    // ✅ Get group conversation
+    @GetMapping("/group/{groupId}")
+    public ResponseEntity<List<Message>> getGroupThread(@PathVariable Long groupId) {
+        return ResponseEntity.ok(chatService.groupThread(groupId));
     }
 }

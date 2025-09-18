@@ -5,6 +5,7 @@ import com.example.chatify.model.User;
 import com.example.chatify.repository.UserRepository;
 import com.example.chatify.service.UserService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,7 +13,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api/users") // ✅ prefixed with /api
+
+
 public class UserController {
 
     private final UserService userService;
@@ -23,27 +26,24 @@ public class UserController {
         this.userRepo = userRepo;
     }
 
-    // ✅ Register a new user (still using User entity for input)
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody User user) {
-        if (userRepo.findByUsername(user.getUsername()).isPresent()) {
-            return ResponseEntity.badRequest().body("{\"error\":\"User already exists!\"}");
+    // ✅ Get current logged-in user (from JWT)
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(Authentication authentication) {
+        String username = authentication.getName(); // Extracted from JWT
+        User user = userRepo.findByUsername(username).orElse(null);
+
+        if (user == null) {
+            return ResponseEntity.status(404).body("{\"error\":\"User not found\"}");
         }
 
-        User savedUser = userService.register(
-                user.getUsername(),
-                user.getPassword(),
-                user.getDisplayName()
-        );
-
-        return ResponseEntity.ok(UserDTO.fromEntity(savedUser));
+        return ResponseEntity.ok(UserDTO.fromEntity(user));
     }
 
     // ✅ List all users (as DTOs)
     @GetMapping
     public ResponseEntity<List<UserDTO>> listAll() {
         List<UserDTO> users = userService.listAll()
-                .stream() // this must be List<User>
+                .stream()
                 .map(UserDTO::fromEntity) // converts User -> UserDTO
                 .collect(Collectors.toList());
 
@@ -80,7 +80,7 @@ public class UserController {
         return ResponseEntity.ok("❌ Friend removed successfully!");
     }
 
-    // ✅ List user’s friends as FriendDTOs
+    // ✅ List user’s friends
     @GetMapping("/{userId}/friends")
     public ResponseEntity<Set<UserDTO.FriendDTO>> listFriends(@PathVariable Long userId) {
         User user = userRepo.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));

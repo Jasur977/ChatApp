@@ -6,6 +6,7 @@ import java.util.Set;
 
 @Entity
 public class GroupChat {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -13,17 +14,14 @@ public class GroupChat {
     private String name;
 
     @ManyToMany
+    @JoinTable(
+            name = "group_chat_users",
+            joinColumns = @JoinColumn(name = "group_chat_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
     private Set<User> members = new HashSet<>();
 
-    // Constructors
-    public GroupChat() {}
-    public GroupChat(Long id, String name, Set<User> members) {
-        this.id = id;
-        this.name = name;
-        this.members = members;
-    }
-
-    // Getters and setters
+    // Getters & Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

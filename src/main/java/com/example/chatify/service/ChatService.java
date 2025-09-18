@@ -8,83 +8,58 @@ import com.example.chatify.repository.MessageRepository;
 import com.example.chatify.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.HashSet;
-import java.util.Set;
 
 @Service
 public class ChatService {
 
-    private final UserRepository userRepository;
-    private final MessageRepository messageRepository;
-    private final GroupChatRepository groupChatRepository;
+    private final MessageRepository messageRepo;
+    private final UserRepository userRepo;
+    private final GroupChatRepository groupChatRepo;
 
-    public ChatService(UserRepository userRepository,
-                       MessageRepository messageRepository,
-                       GroupChatRepository groupChatRepository) {
-        this.userRepository = userRepository;
-        this.messageRepository = messageRepository;
-        this.groupChatRepository = groupChatRepository;
+    public ChatService(MessageRepository messageRepo, UserRepository userRepo, GroupChatRepository groupChatRepo) {
+        this.messageRepo = messageRepo;
+        this.userRepo = userRepo;
+        this.groupChatRepo = groupChatRepo;
     }
 
     // ✅ Direct message
-    public Message sendDirect(Long fromUserId, Long toUserId, String content) {
-        User sender = userRepository.findById(fromUserId).orElseThrow();
-        User recipient = userRepository.findById(toUserId).orElseThrow();
+    public Message sendDirect(Long senderId, Long recipientId, String content) {
+        User sender = userRepo.findById(senderId).orElseThrow(() -> new RuntimeException("Sender not found"));
+        User recipient = userRepo.findById(recipientId).orElseThrow(() -> new RuntimeException("Recipient not found"));
 
-        Message msg = new Message();
-        msg.setSender(sender);
-        msg.setRecipient(recipient);
-        msg.setContent(content);
-        msg.setSentAt(LocalDateTime.now());
+        Message message = new Message();
+        message.setSender(sender);
+        message.setRecipient(recipient);
+        message.setContent(content);
 
-        return messageRepository.save(msg);
+        return messageRepo.save(message);
     }
 
     // ✅ Group message
-    public Message sendToGroup(Long fromUserId, Long groupId, String content) {
-        User sender = userRepository.findById(fromUserId).orElseThrow();
-        GroupChat group = groupChatRepository.findById(groupId).orElseThrow();
+    public Message sendToGroup(Long senderId, Long groupId, String content) {
+        User sender = userRepo.findById(senderId).orElseThrow(() -> new RuntimeException("Sender not found"));
+        GroupChat groupChat = groupChatRepo.findById(groupId).orElseThrow(() -> new RuntimeException("Group not found"));
 
-        Message msg = new Message();
-        msg.setSender(sender);
-        msg.setGroupChat(group);
-        msg.setContent(content);
-        msg.setSentAt(LocalDateTime.now());
+        Message message = new Message();
+        message.setSender(sender);
+        message.setGroupChat(groupChat);
+        message.setContent(content);
 
-        return messageRepository.save(msg);
+        return messageRepo.save(message);
+    }
+    public List<Message> directThread(Long userId, Long friendId) {
+        User user = userRepo.findById(userId).orElseThrow();
+        User friend = userRepo.findById(friendId).orElseThrow();
+
+        return messageRepo.findBySenderAndRecipientOrRecipientAndSenderOrderByTimestampAsc(user, friend, user, friend);
     }
 
-    // ✅ Fetch direct chat history between two users
-    public List<Message> directThread(Long userId1, Long userId2) {
-        return messageRepository.findAll().stream()
-                .filter(m ->
-                        (m.getSender() != null && m.getRecipient() != null) &&
-                                ((m.getSender().getId().equals(userId1) && m.getRecipient().getId().equals(userId2)) ||
-                                        (m.getSender().getId().equals(userId2) && m.getRecipient().getId().equals(userId1)))
-                )
-                .toList();
-    }
-
-    // ✅ Fetch group chat history
     public List<Message> groupThread(Long groupId) {
-        return messageRepository.findAll().stream()
-                .filter(m -> m.getGroupChat() != null && m.getGroupChat().getId().equals(groupId))
+        GroupChat groupChat = groupChatRepo.findById(groupId).orElseThrow();
+        return messageRepo.findAll().stream()
+                .filter(m -> m.getGroupChat() != null &&
+                        m.getGroupChat().getId().equals(groupId))
                 .toList();
-    }
-
-    // ✅ Create a new group
-    public GroupChat createGroup(String name, Set<Long> memberIds) {
-        Set<User> members = new HashSet<>();
-        for (Long id : memberIds) {
-            userRepository.findById(id).ifPresent(members::add);
-        }
-
-        GroupChat group = new GroupChat();
-        group.setName(name);
-        group.setMembers(members);
-
-        return groupChatRepository.save(group);
     }
 }

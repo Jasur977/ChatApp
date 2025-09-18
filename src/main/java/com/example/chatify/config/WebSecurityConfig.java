@@ -3,6 +3,7 @@ package com.example.chatify.config;
 import com.example.chatify.service.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -55,18 +56,15 @@ public class WebSecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
-                        .requestMatchers("/auth/**", "/users/register").permitAll()
-                        // Authenticated endpoints
-                        .requestMatchers("/users/**", "/posts/**").authenticated()
-                        // Any other request also requires authentication
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // ✅ allow preflight
+                        .requestMatchers("/api/auth/**", "/api/health").permitAll()
+                        .requestMatchers("/api/users/**", "/api/posts/**").authenticated()
                         .anyRequest().authenticated()
                 )
-                // Stateless session because we use JWT
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // Add our JWT filter before UsernamePasswordAuthenticationFilter
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
+
 }

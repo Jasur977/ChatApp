@@ -13,13 +13,12 @@ public class ChatWsController {
     private final ChatService chatService;
     private final SimpMessagingTemplate template;
 
-    // ✅ Manual constructor for dependency injection
     public ChatWsController(ChatService chatService, SimpMessagingTemplate template) {
         this.chatService = chatService;
         this.template = template;
     }
 
-    // Handle direct messages over WebSocket
+    // ✅ Direct (1-to-1) messages
     @MessageMapping("/direct")
     public void processDirect(@Payload Message message) {
         Message saved = chatService.sendDirect(
@@ -27,6 +26,8 @@ public class ChatWsController {
                 message.getRecipient().getId(),
                 message.getContent()
         );
+
+        // Send to recipient’s personal queue
         template.convertAndSendToUser(
                 message.getRecipient().getUsername(),
                 "/queue/messages",
@@ -34,7 +35,7 @@ public class ChatWsController {
         );
     }
 
-    // Handle group messages over WebSocket
+    // ✅ Group messages
     @MessageMapping("/group")
     public void processGroup(@Payload Message message) {
         Message saved = chatService.sendToGroup(
@@ -42,6 +43,8 @@ public class ChatWsController {
                 message.getGroupChat().getId(),
                 message.getContent()
         );
+
+        // Broadcast to group topic
         template.convertAndSend(
                 "/topic/group/" + message.getGroupChat().getId(),
                 saved
