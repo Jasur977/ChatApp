@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="fragments/_layout :: section">
+<section>
+    <h2>Welcome <span th:text="${me}">guest</span></h2>
+    <h3>Users</h3>
+    <ul>
+        <li th:each="u : ${users}">
+            <span th:text="${u.username}">user</span>
+            <form th:action="@{'/friends/add/' + ${u.id}}" method="post" style="display:inline">
+                <button>Add Friend</button>
+            </form>
+            <a th:href="@{'/chat/direct.html?other=' + ${u.id}}">Chat</a>
+        </li>
+    </ul>
+</section>
+</html>

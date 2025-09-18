@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="fragments/_layout :: section">
+<section>
+    <h2>Feed</h2>
+    <form method="post">
+        <textarea name="text" rows="3" placeholder="What's on your mind?"></textarea>
+        <button>Post</button>
+    </form>
+    <div th:each="p : ${posts}">
+        <p><b th:text="${p.author.displayName}">user</b>: <span th:text="${p.text}">text</span></p>
+    </div>
+</section>
+</html>

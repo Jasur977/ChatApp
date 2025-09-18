@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="fragments/_layout :: section">
+<section>
+    <h2>Group Chat</h2>
+    <div id="groupMessages"></div>
+    <input id="gmsg" placeholder="Type message" />
+    <button onclick="sendGroup()">Send</button>
+</section>
+<script src="/js/chat.js"></script>
+<script>
+    const groupId = new URLSearchParams(window.location.search).get('group');
+    loadGroup(groupId);
+</script>
+</html>

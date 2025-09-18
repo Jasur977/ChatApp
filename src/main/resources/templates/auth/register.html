@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="fragments/_layout :: section">
+<section>
+    <h2>Register</h2>
+    <form method="post" action="/auth/register">
+        <input name="username" placeholder="username" required />
+        <input name="displayName" placeholder="display name" />
+        <input type="password" name="password" placeholder="password" required />
+        <button type="submit">Create account</button>
+    </form>
+</section>
+</html>

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="fragments/_layout :: section">
+<section>
+    <h2>Direct Chat</h2>
+    <div id="messages"></div>
+    <input id="msg" placeholder="Type message" />
+    <button onclick="sendDirect()">Send</button>
+</section>
+<script src="/js/chat.js"></script>
+<script>
+    const otherId = new URLSearchParams(window.location.search).get('other');
+    loadDirect(otherId);
+</script>
+</html>

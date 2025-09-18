@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="fragments/_layout :: section">
+<section>
+    <h2>Login</h2>
+    <form method="post" action="/auth/login">
+        <input name="username" placeholder="username" required />
+        <input type="password" name="password" placeholder="password" required />
+        <button type="submit">Login</button>
+    </form>
+</section>
+</html>

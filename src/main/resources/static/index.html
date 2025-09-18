@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chatify Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #chat-box { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; margin-bottom: 10px; }
+        input, button { margin: 5px; }
+    </style>
+</head>
+<body>
+<h2>Chatify Demo</h2>
+
+<!-- Registration -->
+<div>
+    <h3>Register</h3>
+    <input type="text" id="reg-username" placeholder="Username">
+    <input type="password" id="reg-password" placeholder="Password">
+    <button onclick="register()">Register</button>
+</div>
+
+<!-- Login -->
+<div>
+    <h3>Login</h3>
+    <input type="text" id="login-username" placeholder="Username">
+    <input type="password" id="login-password" placeholder="Password">
+    <button onclick="login()">Login</button>
+</div>
+
+<!-- Chat -->
+<div>
+    <h3>Chat</h3>
+    <div id="chat-box"></div>
+    <input type="text" id="chat-message" placeholder="Type message...">
+    <button onclick="sendMessage()">Send</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2/dist/stomp.min.js"></script>
+<script>
+    let token = null;
+    let stompClient = null;
+
+    // Register user
+    async function register() {
+        const username = document.getElementById("reg-username").value;
+        const password = document.getElementById("reg-password").value;
+
+        const res = await fetch("/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password })
+        });
+        alert(await res.text());
+    }
+
+    // Login user
+    async function login() {
+        const username = document.getElementById("login-username").value;
+        const password = document.getElementById("login-password").value;
+
+        const res = await fetch("/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password })
+        });
+
+        token = await res.text();
+        alert("JWT Token saved! You are logged in.");
+        connectWebSocket();
+    }
+
+    // Connect WebSocket with JWT
+    function connectWebSocket() {
+        const socket = new SockJS("/ws");
+        stompClient = Stomp.over(socket);
+        stompClient.connect({ "Authorization": "Bearer " + token }, frame => {
+            console.log("Connected: " + frame);
+            stompClient.subscribe("/topic/messages", message => {
+                showMessage(JSON.parse(message.body).content);
+            });
+        });
+    }
+
+    // Send chat message
+    function sendMessage() {
+        const msg = document.getElementById("chat-message").value;
+        stompClient.send("/app/chat", { "Authorization": "Bearer " + token }, JSON.stringify({ content: msg }));
+        document.getElementById("chat-message").value = "";
+    }
+
+    // Show chat message in UI
+    function showMessage(message) {
+        const chatBox = document.getElementById("chat-box");
+        chatBox.innerHTML += "<div>" + message + "</div>";
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+</script>
+</body>
+</html>

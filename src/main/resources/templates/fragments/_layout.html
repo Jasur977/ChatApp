@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title th:text="${title} ?: 'Chatify'"></title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body>
+<header>
+    <a href="/">Home</a>
+    <a href="/posts">Posts</a>
+    <a href="/auth/login">Login</a>
+    <a href="/auth/register">Register</a>
+</header>
+<main>
+    <div th:replace="~{::section}"></div>
+</main>
+</body>
+</html>
