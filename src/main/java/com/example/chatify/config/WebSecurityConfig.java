@@ -56,8 +56,9 @@ public class WebSecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // ✅ allow preflight
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // preflight
                         .requestMatchers("/api/auth/**", "/api/health").permitAll()
+                        .requestMatchers("/ws/**").permitAll()   // ✅ allow websocket handshake
                         .requestMatchers("/api/users/**", "/api/posts/**").authenticated()
                         .anyRequest().authenticated()
                 )
@@ -66,5 +67,6 @@ public class WebSecurityConfig {
 
         return http.build();
     }
+
 
 }
