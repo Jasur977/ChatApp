@@ -1,10 +1,13 @@
 package com.example.chatify.model;
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
+@Table(name = "group_chats")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+
 public class GroupChat {
 
     @Id

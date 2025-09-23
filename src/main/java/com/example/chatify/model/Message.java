@@ -1,84 +1,56 @@
 package com.example.chatify.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "messages") // ✅ optional but cleaner DB table name
+@Table(name = "messages")
 public class Message {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Sender (required)
-    @ManyToOne(fetch = FetchType.LAZY)
+    // Sender
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "sender_id", nullable = false)
+    @JsonIgnoreProperties({"password", "friends", "messages"})
     private User sender;
 
-    // Recipient for direct messages (nullable if it's a group message)
-    @ManyToOne(fetch = FetchType.LAZY)
+    // Recipient (nullable for group messages)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "recipient_id")
+    @JsonIgnoreProperties({"password", "friends", "messages"})
     private User recipient;
 
-    // Group chat reference (nullable if it's a direct message)
-    @ManyToOne(fetch = FetchType.LAZY)
+    // Group chat (nullable for direct messages)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "group_chat_id")
+    @JsonIgnoreProperties({"members", "messages"})
     private GroupChat groupChat;
 
-    // Message text
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    // Auto-set timestamp
     private LocalDateTime timestamp = LocalDateTime.now();
 
     // ===== Getters & Setters =====
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public User getSender() { return sender; }
+    public void setSender(User sender) { this.sender = sender; }
 
-    public User getSender() {
-        return sender;
-    }
+    public User getRecipient() { return recipient; }
+    public void setRecipient(User recipient) { this.recipient = recipient; }
 
-    public void setSender(User sender) {
-        this.sender = sender;
-    }
+    public GroupChat getGroupChat() { return groupChat; }
+    public void setGroupChat(GroupChat groupChat) { this.groupChat = groupChat; }
 
-    public User getRecipient() {
-        return recipient;
-    }
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
 
-    public void setRecipient(User recipient) {
-        this.recipient = recipient;
-    }
-
-    public GroupChat getGroupChat() {
-        return groupChat;
-    }
-
-    public void setGroupChat(GroupChat groupChat) {
-        this.groupChat = groupChat;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
-
-    public LocalDateTime getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(LocalDateTime timestamp) {
-        this.timestamp = timestamp;
-    }
+    public LocalDateTime getTimestamp() { return timestamp; }
+    public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
 }

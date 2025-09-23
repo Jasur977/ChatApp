@@ -2,8 +2,7 @@ package com.example.chatify.controller;
 
 import com.example.chatify.model.GroupChat;
 import com.example.chatify.model.User;
-import com.example.chatify.repository.GroupChatRepository;
-import com.example.chatify.repository.UserRepository;
+import com.example.chatify.service.GroupChatService;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,12 +14,10 @@ import java.util.Map;
 @CrossOrigin(origins = "http://localhost:5173") // allow React dev server
 public class GroupChatController {
 
-    private final GroupChatRepository groupRepo;
-    private final UserRepository userRepo;
+    private final GroupChatService groupChatService;
 
-    public GroupChatController(GroupChatRepository groupRepo, UserRepository userRepo) {
-        this.groupRepo = groupRepo;
-        this.userRepo = userRepo;
+    public GroupChatController(GroupChatService groupChatService) {
+        this.groupChatService = groupChatService;
     }
 
     // ✅ Create a group (creator auto-added as member)
@@ -28,44 +25,25 @@ public class GroupChatController {
     public GroupChat createGroup(@RequestBody Map<String, Object> payload,
                                  Authentication authentication) {
         String name = (String) payload.get("name");
-
-        User creator = userRepo.findByUsername(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        GroupChat group = new GroupChat();
-        group.setName(name);
-        group.getMembers().add(creator);
-
-        return groupRepo.save(group);
+        return groupChatService.createGroup(name, authentication.getName());
     }
 
-    // ✅ Get all groups (optional: replace with "mine")
-    @GetMapping
+    // ✅ Get all groups (visible to everyone)
+    @GetMapping("/all")
     public List<GroupChat> getAllGroups() {
-        return groupRepo.findAll();
+        return groupChatService.getAllGroups();
     }
 
     // ✅ Get only groups the logged-in user belongs to
     @GetMapping("/mine")
     public List<GroupChat> getMyGroups(Authentication authentication) {
-        User me = userRepo.findByUsername(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        return groupRepo.findAll().stream()
-                .filter(g -> g.getMembers().contains(me))
-                .toList();
+        return groupChatService.getMyGroups(authentication.getName());
     }
 
     // ✅ Join a group
     @PostMapping("/{groupId}/join")
     public GroupChat joinGroup(@PathVariable Long groupId,
                                Authentication authentication) {
-        User me = userRepo.findByUsername(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        GroupChat group = groupRepo.findById(groupId)
-                .orElseThrow(() -> new RuntimeException("Group not found"));
-
-        group.getMembers().add(me);
-        return groupRepo.save(group);
+        return groupChatService.joinGroup(groupId, authentication.getName());
     }
 }

@@ -1,13 +1,14 @@
 import { useEffect, useState, useRef } from "react";
 import api from "../services/api"; // axios instance with JWT interceptor
-import { connectWebSocket } from "../services/ws"; // WebSocket client
+import { connectWebSocket, subscribeToGroup } from "../services/ws"; // WebSocket client
 import "../styles/Chat.css";
 
 function Chat() {
     const [user, setUser] = useState(null);
     const [users, setUsers] = useState([]);
     const [friends, setFriends] = useState([]);
-    const [groups, setGroups] = useState([]);
+    const [groups, setGroups] = useState([]);       // ✅ my groups
+    const [allGroups, setAllGroups] = useState([]); // ✅ all groups
     const [loading, setLoading] = useState(true);
 
     const [tab, setTab] = useState("friends");
@@ -25,7 +26,7 @@ function Chat() {
         }
     }, [messages]);
 
-    // ✅ Fetch logged-in user & init WebSocket
+    // ✅ Fetch logged-in user & init WebSocket ONCE
     useEffect(() => {
         const fetchUser = async () => {
             try {
@@ -36,16 +37,14 @@ function Chat() {
                     // Direct messages
                     if (
                         selectedFriend &&
-                        ((msg.sender?.id === selectedFriend.id &&
-                                msg.recipient?.id === response.data.id) ||
-                            (msg.sender?.id === response.data.id &&
-                                msg.recipient?.id === selectedFriend.id))
+                        ((msg.sender?.id === selectedFriend.id && msg.recipient?.id === response.data.id) ||
+                            (msg.sender?.id === response.data.id && msg.recipient?.id === selectedFriend.id))
                     ) {
                         setMessages((prev) => [...prev, msg]);
                     }
 
                     // Group messages
-                    if (msg.groupChat?.id === selectedGroup?.id) {
+                    if (selectedGroup && msg.groupChat?.id === selectedGroup.id) {
                         setMessages((prev) => [...prev, msg]);
                     }
                 });
@@ -54,7 +53,7 @@ function Chat() {
             }
         };
         fetchUser();
-    }, [selectedFriend, selectedGroup]);
+    }, []); // ✅ only once
 
     // ✅ Fetch all users
     useEffect(() => {
@@ -71,17 +70,7 @@ function Chat() {
         fetchUsers();
     }, []);
 
-    // ✅ Fetch friends
-    const fetchFriends = async () => {
-        try {
-            const response = await api.get("/users/friends");
-            setFriends(response.data);
-        } catch (error) {
-            console.error("❌ Failed to fetch friends:", error);
-        }
-    };
-
-    // ✅ Fetch groups
+    // ✅ Fetch my groups
     const fetchGroups = async () => {
         try {
             const response = await api.get("/groupchats/mine");
@@ -91,12 +80,33 @@ function Chat() {
         }
     };
 
+    // ✅ Fetch all groups
+    const fetchAllGroups = async () => {
+        try {
+            const response = await api.get("/groupchats/all");
+            setAllGroups(response.data);
+        } catch (error) {
+            console.error("❌ Failed to fetch all groups:", error);
+        }
+    };
+
     useEffect(() => {
         if (user) {
             fetchFriends();
             fetchGroups();
+            fetchAllGroups();
         }
     }, [user]);
+
+    // ✅ Fetch friends
+    const fetchFriends = async () => {
+        try {
+            const response = await api.get("/users/friends");
+            setFriends(response.data);
+        } catch (error) {
+            console.error("❌ Failed to fetch friends:", error);
+        }
+    };
 
     // ✅ Add friend
     const handleAddFriend = async (friendId) => {
@@ -125,8 +135,20 @@ function Chat() {
         try {
             await api.post(`/groupchats/create`, { name });
             fetchGroups();
+            fetchAllGroups();
         } catch (error) {
             console.error("❌ Failed to create group:", error);
+        }
+    };
+
+    // ✅ Join group
+    const handleJoinGroup = async (groupId) => {
+        try {
+            await api.post(`/groupchats/${groupId}/join`);
+            fetchGroups();
+            fetchAllGroups();
+        } catch (error) {
+            console.error("❌ Failed to join group:", error);
         }
     };
 
@@ -146,54 +168,60 @@ function Chat() {
     const selectGroup = async (group) => {
         setSelectedFriend(null);
         setSelectedGroup(group);
+        setMessages([]);
+
         try {
             const res = await api.get(`/messages/group/${group.id}`);
             setMessages(res.data);
+
+            subscribeToGroup(group.id, (msg) => {
+                if (msg.groupChat?.id === group.id) {
+                    setMessages((prev) => [...prev, msg]);
+                }
+            });
         } catch (err) {
             console.error("❌ Failed to load group messages", err);
         }
     };
 
-    // ✅ Send message (direct or group)
+    // ✅ Send message
     const handleSend = async () => {
         if (!input.trim() || !user) return;
 
         try {
-            let newMessage;
+            let res;
             if (selectedFriend) {
-                const res = await api.post(`/messages/direct/send`, {
+                res = await api.post(`/messages/direct/send`, {
                     recipientId: selectedFriend.id,
                     content: input,
                 });
-                newMessage = res.data;
             } else if (selectedGroup) {
-                const res = await api.post(`/messages/group/${selectedGroup.id}/send`, {
+                res = await api.post(`/messages/group/${selectedGroup.id}/send`, {
                     content: input,
                 });
-                newMessage = res.data;
             }
 
-            // ✅ update UI immediately
-            setMessages((prev) => [...prev, newMessage]);
+            if (res?.data) {
+                setMessages((prev) => [...prev, res.data]);
+            }
+
             setInput("");
         } catch (err) {
             console.error("❌ Failed to send message", err);
         }
     };
 
-
     const handleLogout = () => {
         localStorage.removeItem("token");
         window.location.href = "/login";
     };
 
-    // ✅ List to show based on active tab
     const listToShow =
         tab === "friends"
             ? friends
             : tab === "users"
                 ? users.filter((u) => u.id !== user?.id)
-                : groups;
+                : allGroups;
 
     return (
         <div className="chat-container">
@@ -202,24 +230,9 @@ function Chat() {
                 <h3>Chatify</h3>
 
                 <div className="tabs">
-                    <button
-                        className={tab === "friends" ? "active" : ""}
-                        onClick={() => setTab("friends")}
-                    >
-                        Friends
-                    </button>
-                    <button
-                        className={tab === "users" ? "active" : ""}
-                        onClick={() => setTab("users")}
-                    >
-                        All Users
-                    </button>
-                    <button
-                        className={tab === "groups" ? "active" : ""}
-                        onClick={() => setTab("groups")}
-                    >
-                        Groups
-                    </button>
+                    <button className={tab === "friends" ? "active" : ""} onClick={() => setTab("friends")}>Friends</button>
+                    <button className={tab === "users" ? "active" : ""} onClick={() => setTab("users")}>All Users</button>
+                    <button className={tab === "groups" ? "active" : ""} onClick={() => setTab("groups")}>Groups</button>
                 </div>
 
                 {tab === "groups" && (
@@ -232,12 +245,14 @@ function Chat() {
                     <ul>
                         {listToShow.map((item) => {
                             if (tab === "groups") {
+                                const isMember = groups.some((g) => g.id === item.id);
                                 return (
                                     <li
                                         key={item.id}
                                         className={selectedGroup?.id === item.id ? "selected" : ""}
                                     >
                                         <span onClick={() => selectGroup(item)}>{item.name}</span>
+                                        {!isMember && <button onClick={() => handleJoinGroup(item.id)}>Join</button>}
                                     </li>
                                 );
                             } else {
@@ -252,13 +267,9 @@ function Chat() {
                                         </span>
                                         {tab === "users" &&
                                             (isFriend ? (
-                                                <button onClick={() => handleRemoveFriend(item.id)}>
-                                                    ❌
-                                                </button>
+                                                <button onClick={() => handleRemoveFriend(item.id)}>❌</button>
                                             ) : (
-                                                <button onClick={() => handleAddFriend(item.id)}>
-                                                    ➕
-                                                </button>
+                                                <button onClick={() => handleAddFriend(item.id)}>➕</button>
                                             ))}
                                     </li>
                                 );
@@ -271,33 +282,19 @@ function Chat() {
             {/* Chat area */}
             <div className="chat-area">
                 <div className="chat-header">
-                    {user && (
-                        <div className="chat-info">
-                            <p>
-                                You: <strong>{user.displayName}</strong> (@{user.username})
-                            </p>
-
-                            {selectedFriend && (
-                                <p>
-                                    Talking to: <strong>{selectedFriend.displayName}</strong> (@{selectedFriend.username})
-                                </p>
-                            )}
-
-                            {selectedGroup && (
-                                <p>
-                                    Group: <strong>{selectedGroup.name}</strong>
-                                </p>
-                            )}
-                        </div>
+                    {user ? (
+                        <p>
+                            Logged in as <strong>{user.displayName}</strong> (@{user.username})
+                        </p>
+                    ) : (
+                        <p>Loading user...</p>
                     )}
 
-                    {!user && <p>Loading user...</p>}
+                    {selectedFriend && <h4>💬 Chatting with {selectedFriend.displayName} (@{selectedFriend.username})</h4>}
+                    {selectedGroup && <h4>👥 Group: {selectedGroup.name}</h4>}
 
-                    <button onClick={handleLogout} className="logout-btn">
-                        Logout
-                    </button>
+                    <button onClick={handleLogout} className="logout-btn">Logout</button>
                 </div>
-
 
                 {selectedFriend || selectedGroup ? (
                     <>
@@ -305,14 +302,10 @@ function Chat() {
                             {messages.map((m, i) => (
                                 <div
                                     key={i}
-                                    className={`message-bubble ${
-                                        m.sender?.id === user?.id ? "sent" : "received"
-                                    }`}
+                                    className={`message-bubble ${m.sender?.id === user?.id ? "sent" : "received"}`}
                                 >
-                                    <strong>
-                                        {selectedGroup && m.sender ? m.sender.displayName : ""}
-                                    </strong>{" "}
-                                    {m.content}
+                                    {/* Show name only for groups */}
+                                    {selectedGroup && <strong>{m.sender?.displayName}:</strong>} {m.content}
                                 </div>
                             ))}
                             <div ref={messagesEndRef} />

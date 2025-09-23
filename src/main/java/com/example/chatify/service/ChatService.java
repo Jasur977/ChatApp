@@ -48,18 +48,16 @@ public class ChatService {
 
         return messageRepo.save(message);
     }
-    public List<Message> directThread(Long userId, Long friendId) {
-        User user = userRepo.findById(userId).orElseThrow();
-        User friend = userRepo.findById(friendId).orElseThrow();
 
-        return messageRepo.findBySenderAndRecipientOrRecipientAndSenderOrderByTimestampAsc(user, friend, user, friend);
+    public List<Message> directThread(Long userId, Long friendId) {
+        User user = userRepo.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+        User friend = userRepo.findById(friendId).orElseThrow(() -> new RuntimeException("Friend not found"));
+        return messageRepo.getConversation(user, friend); // ✅ use custom query
     }
 
     public List<Message> groupThread(Long groupId) {
-        GroupChat groupChat = groupChatRepo.findById(groupId).orElseThrow();
-        return messageRepo.findAll().stream()
-                .filter(m -> m.getGroupChat() != null &&
-                        m.getGroupChat().getId().equals(groupId))
-                .toList();
+        GroupChat group = groupChatRepo.findById(groupId).orElseThrow(() -> new RuntimeException("Group not found"));
+        return messageRepo.getGroupMessages(group); // ✅ use custom query
     }
+
 }

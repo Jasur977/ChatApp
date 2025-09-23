@@ -44,7 +44,8 @@ public class MessageService {
         User friend = userRepo.findById(friendId)
                 .orElseThrow(() -> new RuntimeException("Friend not found"));
 
-        return messageRepo.findBySenderAndRecipientOrRecipientAndSenderOrderByTimestampAsc(user, friend, user, friend);
+        // ✅ use custom repo query
+        return messageRepo.getConversation(user, friend);
     }
 
     // === Group messages ===
@@ -66,6 +67,7 @@ public class MessageService {
         GroupChat group = groupChatRepo.findById(groupId)
                 .orElseThrow(() -> new RuntimeException("Group not found"));
 
-        return messageRepo.findByGroupChatOrderByTimestampAsc(group);
+        // ✅ use custom repo query
+        return messageRepo.getGroupMessages(group);
     }
 }

@@ -4,16 +4,22 @@ import com.example.chatify.model.GroupChat;
 import com.example.chatify.model.Message;
 import com.example.chatify.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
 public interface MessageRepository extends JpaRepository<Message, Long> {
 
-    // ✅ Direct messages between two users
-    List<Message> findBySenderAndRecipientOrRecipientAndSenderOrderByTimestampAsc(
-            User sender, User recipient, User recipient2, User sender2
-    );
+    // Direct conversation (both ways)
+    @Query("SELECT m FROM Message m " +
+            "WHERE (m.sender = :user AND m.recipient = :friend) " +
+            "   OR (m.sender = :friend AND m.recipient = :user) " +
+            "ORDER BY m.timestamp ASC")
+    List<Message> getConversation(User user, User friend);
 
-    // ✅ Group chat messages
-    List<Message> findByGroupChatOrderByTimestampAsc(GroupChat groupChat);
+    // Group conversation
+    @Query("SELECT m FROM Message m " +
+            "WHERE m.groupChat = :group " +
+            "ORDER BY m.timestamp ASC")
+    List<Message> getGroupMessages(GroupChat group);
 }
