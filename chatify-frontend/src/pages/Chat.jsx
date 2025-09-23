@@ -12,7 +12,7 @@ function Chat() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
 
-    // ✅ Fetch logged-in user
+    // ✅ Fetch logged-in user and connect WebSocket
     useEffect(() => {
         const fetchUser = async () => {
             try {
@@ -55,14 +55,8 @@ function Chat() {
     const handleSend = () => {
         if (!input.trim() || !selectedFriend || !user) return;
 
-        const message = {
-            sender: { id: user.id, username: user.username },
-            recipient: { id: selectedFriend.id, username: selectedFriend.username },
-            content: input,
-        };
-
-        sendDirectMessage(message);
-        setMessages((prev) => [...prev, message]); // optimistic update
+        // Only send — no optimistic update
+        sendDirectMessage(selectedFriend.id, input);
         setInput("");
     };
 

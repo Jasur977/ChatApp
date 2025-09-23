@@ -1,53 +1,93 @@
 package com.example.chatify.controller;
 
+import com.example.chatify.dto.SendDirectMessageRequest;
+import com.example.chatify.dto.SendGroupMessageRequest;
 import com.example.chatify.model.Message;
+import com.example.chatify.repository.UserRepository;
 import com.example.chatify.service.ChatService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
+import java.security.Principal;
+
 @Controller
 public class ChatWsController {
 
     private final ChatService chatService;
     private final SimpMessagingTemplate template;
+    private final UserRepository userRepo;
 
-    public ChatWsController(ChatService chatService, SimpMessagingTemplate template) {
+    public ChatWsController(ChatService chatService,
+                            SimpMessagingTemplate template,
+                            UserRepository userRepo) {
         this.chatService = chatService;
         this.template = template;
+        this.userRepo = userRepo;
     }
 
     // ✅ Direct (1-to-1) messages
     @MessageMapping("/direct")
-    public void processDirect(@Payload Message message) {
+    public void processDirect(@Payload SendDirectMessageRequest dto, Principal principal) {
+        String senderUsername = principal.getName();
+        System.out.println("📩 Direct message received from: " + senderUsername);
+        System.out.println("Recipient ID in payload: " + dto.getRecipientId());
+
+        // 🔹 Resolve sender ID from principal
+        Long senderId = userRepo.findByUsername(senderUsername)
+                .orElseThrow(() -> new RuntimeException("Sender not found"))
+                .getId();
+
+        // Save message in DB
         Message saved = chatService.sendDirect(
-                message.getSender().getId(),
-                message.getRecipient().getId(),
-                message.getContent()
+                senderId,
+                dto.getRecipientId(),
+                dto.getContent()
         );
 
-        // Send to recipient’s personal queue
+        // Deliver to recipient
         template.convertAndSendToUser(
-                message.getRecipient().getUsername(),
+                saved.getRecipient().getUsername(),
                 "/queue/messages",
                 saved
         );
+
+        // Echo back to sender
+        template.convertAndSendToUser(
+                saved.getSender().getUsername(),
+                "/queue/messages",
+                saved
+        );
+
+        System.out.println("📤 Sent message to user: " + saved.getRecipient().getUsername());
     }
 
     // ✅ Group messages
     @MessageMapping("/group")
-    public void processGroup(@Payload Message message) {
+    public void processGroup(@Payload SendGroupMessageRequest dto, Principal principal) {
+        String senderUsername = principal.getName();
+        System.out.println("👥 Group message received from: " + senderUsername);
+        System.out.println("Group ID in payload: " + dto.getGroupId());
+
+        // 🔹 Resolve sender ID from principal
+        Long senderId = userRepo.findByUsername(senderUsername)
+                .orElseThrow(() -> new RuntimeException("Sender not found"))
+                .getId();
+
+        // Save message in DB
         Message saved = chatService.sendToGroup(
-                message.getSender().getId(),
-                message.getGroupChat().getId(),
-                message.getContent()
+                senderId,
+                dto.getGroupId(),
+                dto.getContent()
         );
 
-        // Broadcast to group topic
+        // Broadcast to group subscribers
         template.convertAndSend(
-                "/topic/group/" + message.getGroupChat().getId(),
+                "/topic/group/" + saved.getGroupChat().getId(),
                 saved
         );
+
+        System.out.println("📢 Broadcasted message to group: " + saved.getGroupChat().getId());
     }
 }
