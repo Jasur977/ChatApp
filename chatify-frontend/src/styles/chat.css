@@ -1,0 +1,154 @@
+.chat-container {
+    display: flex;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+}
+
+.sidebar {
+    width: 280px;
+    background: #2c3e50;
+    color: #ecf0f1;
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.sidebar h3 {
+    margin-top: 0;
+    border-bottom: 1px solid #7f8c8d;
+    padding-bottom: 0.5rem;
+}
+
+.tabs {
+    display: flex;
+    margin-bottom: 1rem;
+}
+
+.tabs button {
+    flex: 1;
+    padding: 6px;
+    margin-right: 4px;
+    border: none;
+    background: #34495e;
+    color: #ecf0f1;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.tabs button.active {
+    background: #1abc9c;
+    font-weight: bold;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px;
+    margin-bottom: 4px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.sidebar li:hover {
+    background: #34495e;
+}
+
+.sidebar li.selected {
+    background: #1abc9c;
+}
+
+.sidebar button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: white;
+}
+
+.chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #ccc;
+    background: #ecf0f1;
+}
+
+.logout-btn {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.messages {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    background: #f9f9f9;
+    display: flex;
+    flex-direction: column;
+}
+
+.message-bubble {
+    display: inline-block;
+    padding: 8px 12px;
+    border-radius: 15px;
+    margin-bottom: 8px;
+    max-width: 60%;
+}
+
+.sent {
+    background: #3498db;
+    color: white;
+    align-self: flex-end;
+    text-align: right;
+}
+
+.received {
+    background: #bdc3c7;
+    color: #2c3e50;
+    align-self: flex-start;
+    text-align: left;
+}
+
+.input-area {
+    display: flex;
+    padding: 0.5rem;
+    border-top: 1px solid #ccc;
+    background: #ecf0f1;
+}
+
+.input-area input {
+    flex: 1;
+    padding: 0.5rem;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+.input-area button {
+    margin-left: 8px;
+    background: #2ecc71;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 6px 12px;
+    cursor: pointer;
+}
+
+.no-chat {
+    text-align: center;
+    margin: 2rem;
+}

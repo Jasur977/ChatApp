@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import api from "../services/api";
-import { useNavigate } from "react-router-dom"; // ✅ for redirect
+import "../styles/auth.css";
 
 function Login() {
     const [formData, setFormData] = useState({
@@ -8,8 +9,9 @@ function Login() {
         password: "",
     });
 
-    const [message, setMessage] = useState("");
-    const navigate = useNavigate(); // ✅ React Router hook
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const navigate = useNavigate();
 
     const handleChange = (e) => {
         setFormData({
@@ -19,46 +21,54 @@ function Login() {
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault(); // ✅ stop default GET form action
+        e.preventDefault();
+        setLoading(true);
+        setError("");
         try {
-            const response = await api.post("/auth/login", formData); // ✅ POST request
-            setMessage(response.data.message || "Login successful! 🎉");
+            const res = await api.post("/auth/login", formData);
 
-            // ✅ Save JWT token for future requests
-            localStorage.setItem("token", response.data.token);
+            // ✅ Save JWT
+            localStorage.setItem("token", res.data.token);
 
-            // ✅ Redirect to chat after login
+            // ✅ Redirect to chat
             navigate("/chat");
-        } catch (error) {
-            setMessage(error.response?.data?.message || "❌ Login failed");
-            console.error("Error:", error);
+        } catch (err) {
+            setError(err.response?.data?.message || "❌ Invalid username or password");
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <div>
-            <h2>Login</h2>
-            <form onSubmit={handleSubmit} method="post">
-                <input
-                    type="text"
-                    name="username"
-                    placeholder="Username"
-                    value={formData.username}
-                    onChange={handleChange}
-                /><br />
-
-                <input
-                    type="password"
-                    name="password"
-                    placeholder="Password"
-                    value={formData.password}
-                    onChange={handleChange}
-                /><br />
-
-                <button type="submit">Login</button>
-            </form>
-
-            {message && <p>{message}</p>}
+        <div className="auth-container">
+            <div className="auth-box">
+                <h2>🔐 Login to Chatify</h2>
+                {error && <p className="error">{error}</p>}
+                <form onSubmit={handleSubmit}>
+                    <input
+                        type="text"
+                        name="username"
+                        placeholder="Username"
+                        value={formData.username}
+                        onChange={handleChange}
+                        required
+                    />
+                    <input
+                        type="password"
+                        name="password"
+                        placeholder="Password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        required
+                    />
+                    <button type="submit" disabled={loading}>
+                        {loading ? "Logging in..." : "Login"}
+                    </button>
+                </form>
+                <p>
+                    Don’t have an account? <Link to="/register">Register</Link>
+                </p>
+            </div>
         </div>
     );
 }

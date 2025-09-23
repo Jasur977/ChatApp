@@ -1,66 +1,56 @@
 import { useState } from "react";
 import api from "../services/api";
+import "../styles/auth.css";
 
 function Register() {
-    const [formData, setFormData] = useState({
-        username: "",
-        password: "",
-        displayName: "",
-    });
-
+    const [username, setUsername] = useState("");
+    const [displayName, setDisplayName] = useState("");
+    const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
-
-    const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value,
-        });
-    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await api.post("/auth/register", formData);
-            setMessage(response.data.message || "Registered successfully!");
-            console.log("✅ Server response:", response.data);
-        } catch (error) {
-            setMessage(error.response?.data?.message || "❌ Registration failed");
-            console.error("Error:", error);
+            await api.post("/auth/register", { username, displayName, password });
+            setMessage("✅ Registration successful! You can now login.");
+        } catch (err) {
+            setMessage("❌ Failed to register. Try again.");
         }
     };
 
     return (
-        <div>
-            <h2>Register</h2>
-            <form onSubmit={handleSubmit} method="post">
-                <input
-                    type="text"
-                    name="username"
-                    placeholder="Username"
-                    value={formData.username}
-                    onChange={handleChange}
-                /><br />
-
-                <input
-                    type="text"
-                    name="displayName"
-                    placeholder="Display Name (optional)"
-                    value={formData.displayName}
-                    onChange={handleChange}
-                /><br />
-
-                <input
-                    type="password"
-                    name="password"
-                    placeholder="Password"
-                    value={formData.password}
-                    onChange={handleChange}
-                /><br />
-
-                <button type="submit">Register</button>
-            </form>
-
-            {message && <p>{message}</p>}
+        <div className="auth-container">
+            <div className="auth-box">
+                <h2>📝 Register for Chatify</h2>
+                {message && <p className="message">{message}</p>}
+                <form onSubmit={handleSubmit}>
+                    <input
+                        type="text"
+                        placeholder="Username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        required
+                    />
+                    <input
+                        type="text"
+                        placeholder="Display Name"
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        required
+                    />
+                    <input
+                        type="password"
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
+                    <button type="submit">Register</button>
+                </form>
+                <p>
+                    Already have an account? <a href="/login">Login</a>
+                </p>
+            </div>
         </div>
     );
 }

@@ -1,18 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import api from "../services/api";
 import { connectWebSocket, sendDirectMessage } from "../services/ws";
+import "../styles/Chat.css";
 
 function Chat() {
     const [user, setUser] = useState(null);
     const [users, setUsers] = useState([]);
+    const [friends, setFriends] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [systemMessage, setSystemMessage] = useState("");
 
+    const [tab, setTab] = useState("friends"); // "friends" | "users"
     const [selectedFriend, setSelectedFriend] = useState(null);
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
+    const messagesEndRef = useRef(null);
 
-    // ✅ Fetch logged-in user and connect WebSocket
+    // ✅ Scroll to bottom when new messages arrive
+    useEffect(() => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [messages]);
+
+    // ✅ Fetch logged-in user
     useEffect(() => {
         const fetchUser = async () => {
             try {
@@ -21,7 +31,6 @@ function Chat() {
 
                 // Connect WebSocket once user is known
                 connectWebSocket((msg) => {
-                    // Only keep messages relevant to the current user
                     if (
                         msg.sender?.id === response.data.id ||
                         msg.recipient?.id === response.data.id
@@ -51,11 +60,44 @@ function Chat() {
         fetchUsers();
     }, []);
 
-    // ✅ Send message to selected friend
+    // ✅ Fetch my friends
+    const fetchFriends = async () => {
+        if (!user) return;
+        try {
+            const response = await api.get(`/users/${user.id}/friends`);
+            setFriends(response.data);
+        } catch (error) {
+            console.error("❌ Failed to fetch friends:", error);
+        }
+    };
+
+    useEffect(() => {
+        if (user) fetchFriends();
+    }, [user]);
+
+    // ✅ Add friend
+    const handleAddFriend = async (friendId) => {
+        try {
+            await api.post(`/users/${user.id}/add-friend/${friendId}`);
+            fetchFriends();
+        } catch (error) {
+            console.error("❌ Failed to add friend:", error);
+        }
+    };
+
+    // ✅ Remove friend
+    const handleRemoveFriend = async (friendId) => {
+        try {
+            await api.delete(`/users/${user.id}/remove-friend/${friendId}`);
+            fetchFriends();
+        } catch (error) {
+            console.error("❌ Failed to remove friend:", error);
+        }
+    };
+
+    // ✅ Send message
     const handleSend = () => {
         if (!input.trim() || !selectedFriend || !user) return;
-
-        // Only send — no optimistic update
         sendDirectMessage(selectedFriend.id, input);
         setInput("");
     };
@@ -65,61 +107,82 @@ function Chat() {
         window.location.href = "/login";
     };
 
+    const listToShow =
+        tab === "friends"
+            ? friends
+            : users.filter((u) => u.id !== user?.id);
+
     return (
-        <div style={{ display: "flex", height: "100vh" }}>
+        <div className="chat-container">
             {/* Sidebar */}
-            <div style={{ width: "250px", background: "#f5f5f5", padding: "1rem" }}>
-                <h3>Friends / Users</h3>
+            <div className="sidebar">
+                <h3>Chatify</h3>
+
+                <div className="tabs">
+                    <button
+                        className={tab === "friends" ? "active" : ""}
+                        onClick={() => setTab("friends")}
+                    >
+                        Friends
+                    </button>
+                    <button
+                        className={tab === "users" ? "active" : ""}
+                        onClick={() => setTab("users")}
+                    >
+                        All Users
+                    </button>
+                </div>
+
                 {loading ? (
-                    <p>Loading users...</p>
+                    <p>Loading...</p>
                 ) : (
                     <ul>
-                        {users
-                            .filter((u) => user && u.id !== user.id) // hide self
-                            .map((u) => (
+                        {listToShow.map((u) => {
+                            const isFriend = friends.some((f) => f.id === u.id);
+                            return (
                                 <li
                                     key={u.id}
-                                    style={{
-                                        marginBottom: "0.5rem",
-                                        cursor: "pointer",
-                                        fontWeight: selectedFriend?.id === u.id ? "bold" : "normal",
-                                    }}
-                                    onClick={() => setSelectedFriend(u)}
+                                    className={selectedFriend?.id === u.id ? "selected" : ""}
                                 >
-                                    {u.displayName} (@{u.username})
+                                    <span onClick={() => setSelectedFriend(u)}>
+                                        {u.displayName} (@{u.username})
+                                    </span>
+                                    {tab === "users" && (
+                                        isFriend ? (
+                                            <button onClick={() => handleRemoveFriend(u.id)}>
+                                                ❌
+                                            </button>
+                                        ) : (
+                                            <button onClick={() => handleAddFriend(u.id)}>
+                                                ➕
+                                            </button>
+                                        )
+                                    )}
                                 </li>
-                            ))}
+                            );
+                        })}
                     </ul>
                 )}
             </div>
 
-            {/* Main Chat Area */}
-            <div style={{ flex: 1, padding: "1rem" }}>
-                <h2>Welcome to Chatify 🎉</h2>
-                {user ? (
-                    <p>
-                        Logged in as <strong>{user.displayName}</strong> (@{user.username})
-                    </p>
-                ) : (
-                    <p>Loading user info...</p>
-                )}
-
-                {systemMessage && <p>{systemMessage}</p>}
-
-                <button onClick={handleLogout}>Logout</button>
+            {/* Chat area */}
+            <div className="chat-area">
+                <div className="chat-header">
+                    {user ? (
+                        <p>
+                            Logged in as <strong>{user.displayName}</strong> (@{user.username})
+                        </p>
+                    ) : (
+                        <p>Loading user...</p>
+                    )}
+                    <button onClick={handleLogout} className="logout-btn">
+                        Logout
+                    </button>
+                </div>
 
                 {selectedFriend ? (
-                    <div style={{ marginTop: "2rem" }}>
-                        <h3>Chatting with {selectedFriend.displayName}</h3>
-                        <div
-                            style={{
-                                border: "1px solid #ccc",
-                                height: "300px",
-                                overflowY: "scroll",
-                                marginBottom: "1rem",
-                                padding: "0.5rem",
-                            }}
-                        >
+                    <>
+                        <div className="messages">
                             {messages
                                 .filter(
                                     (m) =>
@@ -129,22 +192,30 @@ function Chat() {
                                             m.recipient?.id === user?.id)
                                 )
                                 .map((m, i) => (
-                                    <p key={i}>
-                                        <strong>{m.sender?.username}:</strong> {m.content}
-                                    </p>
+                                    <div
+                                        key={i}
+                                        className={`message-bubble ${
+                                            m.sender?.id === user?.id ? "sent" : "received"
+                                        }`}
+                                    >
+                                        {m.content}
+                                    </div>
                                 ))}
+                            <div ref={messagesEndRef} />
                         </div>
 
-                        <input
-                            type="text"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder="Type a message..."
-                        />
-                        <button onClick={handleSend}>Send</button>
-                    </div>
+                        <div className="input-area">
+                            <input
+                                type="text"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                placeholder="Type a message..."
+                            />
+                            <button onClick={handleSend}>Send</button>
+                        </div>
+                    </>
                 ) : (
-                    <p style={{ marginTop: "2rem" }}>👈 Select a friend to start chatting</p>
+                    <p className="no-chat">👈 Select a friend to start chatting</p>
                 )}
             </div>
         </div>
