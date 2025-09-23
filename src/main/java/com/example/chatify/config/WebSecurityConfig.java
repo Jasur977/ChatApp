@@ -58,6 +58,8 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // preflight
                         .requestMatchers("/api/auth/**", "/api/health").permitAll()
+                        .requestMatchers("/api/messages/**").authenticated()
+                        .requestMatchers("/api/groupchats/**").authenticated()
                         .requestMatchers("/ws/**").permitAll()   // ✅ allow websocket handshake
                         .requestMatchers("/api/users/**", "/api/posts/**").authenticated()
                         .anyRequest().authenticated()

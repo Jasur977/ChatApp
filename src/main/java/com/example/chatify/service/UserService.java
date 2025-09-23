@@ -12,10 +12,12 @@ public class UserService {
 
     private final UserRepository userRepo;
     private final PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
 
-    public UserService(UserRepository userRepo, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepo, PasswordEncoder passwordEncoder, UserRepository userRepository) {
         this.userRepo = userRepo;
         this.passwordEncoder = passwordEncoder;
+        this.userRepository = userRepository;
     }
 
     // ✅ Register new user
@@ -37,5 +39,10 @@ public class UserService {
     public User findById(Long id) {
         return userRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    public User findByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
     }
 }
